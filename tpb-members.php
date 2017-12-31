@@ -155,7 +155,8 @@ class TPBMembersPlugin {
      */
     public function makeList($attributes): string {
         $settings = shortcode_atts([
-            'columns' => 'first,last'
+            'columns' => 'first,last',
+            'list' => ''
         ], $attributes);
 
         $members = json_decode($this->getOption('members', '[]'), true);
@@ -166,19 +167,31 @@ class TPBMembersPlugin {
         $columns = array_map(function($i) {
             return trim($i);
         }, explode(',', $settings['columns']));
-        $html = '<table><thead>';
-        foreach($columns as $c) {
-            $html .= '<th>'.self::COLUMN_NAMES[$c].'</th>';
-        }
-        $html .= '</thead><tbody>';
-        foreach($members as $m) {
-            $html .= '<tr>';
+        if(empty($settings['list'])) {
+            $html = '<table><thead>';
             foreach($columns as $c) {
-                $html .= '<td>'.$m[self::ATTR_TO_INDEX[$c]].'</td>';
+                $html .= '<th>'.self::COLUMN_NAMES[$c].'</th>';
             }
-            $html .= '</tr>';
+            $html .= '</thead><tbody>';
+            foreach($members as $m) {
+                $html .= '<tr>';
+                foreach($columns as $c) {
+                    $html .= '<td>'.$m[self::ATTR_TO_INDEX[$c]].'</td>';
+                }
+                $html .= '</tr>';
+            }
+            $html .= '</tbody></table>';
         }
-        $html .= '</tbody></table>';
+        else {
+            $html = '<ul>';
+            foreach($members as $m) {
+                $html .= '<li>';
+                foreach($columns as $c) {
+                    $html .= $m[self::ATTR_TO_INDEX[$c]].' ';
+                }
+                $html .= '</li>';
+            }
+        }
         return $html;
     }
 }
