@@ -47,7 +47,7 @@ class TPBMembersPlugin {
             add_action('admin_init', [$this, 'onInit']);
             add_action('admin_menu', [self::class, 'onMenu']);
         }
-        add_shortcode('tbp-members', [$this, 'makeList']);
+        add_shortcode('tpbmembers', [$this, 'makeList']);
     }
 
     public function onInit() {
@@ -128,7 +128,7 @@ class TPBMembersPlugin {
     }
 
     /**
-     * Makes a members list based on a shortcode like [tpb-members columns="first,last"]
+     * Makes a members list based on a shortcode like [tpbmembers columns="first,last"]
      */
     public function makeList($attributes): string {
         $settings = shortcode_atts([
