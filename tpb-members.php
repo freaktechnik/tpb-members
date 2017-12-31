@@ -11,11 +11,12 @@ Text-Domain: tpb-members
 
 define('TPBM_TEXT_DOMAIN', 'tpb-members');
 
-require_once 'TPBClient.php';
+require_once __DIR__.'/TPBClient.php';
 
 class TPBMembersPlugin {
     const OPTION_PREFIX = 'tpbm_';
     const OPTION_GROUP = 'tpbm-settings';
+    const OPTION_SLUG = 'tpb-members';
 
     const ATTR_TO_INDEX = [
         'first' => TPBClient::CONTACT_FIRST_NAME,
@@ -43,28 +44,71 @@ class TPBMembersPlugin {
 
     public function __construct() {
         if(is_admin()) {
-            add_action('admin_init', [self::class, 'onInit']);
+            add_action('admin_init', [$this, 'onInit']);
             add_action('admin_menu', [self::class, 'onMenu']);
         }
         add_shortcode('tbp-members', [$this, 'makeList']);
     }
 
-    public static function onInit() {
+    public function onInit() {
         register_setting(self::OPTION_GROUP, self::OPTION_PREFIX.'token', [
-            'type' => 'string'
+            'type' => 'string',
+            'default' => '',
+            'description' => __('TPB Token', TPBM_TEXT_DOMAIN)
         ]);
         register_setting(self::OPTION_GROUP, self::OPTION_PREFIX.'buch', [
             'type' => 'string',
-            'default' => null
+            'default' => null,
+            'description' => __('TPB Book ID', TPBM_TEXT_DOMAIN)
         ]);
+
+        add_settings_section(
+            self::OPTION_GROUP.'_tpb',
+            __('Teamplanbuch Login', TPBM_TEXT_DOMAIN),
+            function() {},
+            self::OPTION_SLUG
+        );
+
+        add_settings_field(
+            self::OPTION_PREFIX.'token',
+            __('TPB Token', TPBM_TEXT_DOMAIN),
+            [$this, 'makeInput'],
+            self::OPTION_SLUG,
+            self::OPTION_GROUP.'_tpb',
+            [
+                'name' => 'token'
+            ]
+        );
+
+        add_settings_field(
+            self::OPTION_PREFIX.'buch',
+            __('TPB Book ID', TPBM_TEXT_DOMAIN),
+            [$this, 'makeInput'],
+            self::OPTION_SLUG,
+            self::OPTION_GROUP.'_tpb',
+            [
+                'name' => 'buch'
+            ]
+        );
+    }
+
+    public function makeInput($args) {
+        $optionName = self::OPTION_PREFIX.$args['name'];
+        echo '<input name="'.$optionName.'" value="'.esc_attr($this->getOption($args['name'], '')).'" type="text">';
     }
 
     public static function onMenu() {
-        add_menu_page('TPB Members', 'TPB Mitgliederliste', 'manage_options', 'tpbm-list', [self::class, 'showOptions']);
+        add_menu_page(
+            __('TPB Member List Settings', TPBM_TEXT_DOMAIN),
+            __('TPB Member List', TPBM_TEXT_DOMAIN),
+            'manage_options',
+            self::OPTION_SLUG,
+            [self::class, 'showOptions']
+        );
     }
 
     public static function showOptions() {
-        include 'options.php';
+        include __DIR__.'/options.php';
     }
 
     private function getOption(string $name, $default) {
