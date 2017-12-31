@@ -8,6 +8,22 @@ if(isset($_GET['settings-updated'])) {
         'updated'
     );
 }
+if($lastError) {
+    add_settings_error(
+        'tpbm_messages',
+        'tpbm_sync_error',
+        __('Sync error', TPBM_TEXT_DOMAIN).':'.esc_html($lastError),
+        'error'
+    );
+}
+else if($didSync) {
+    add_settings_error(
+        'tpbm_messages',
+        'tpbm_sync_success',
+        __('Synced members successfully', TPBM_TEXT_DOMAIN),
+        'updated'
+    );
+}
 settings_errors('tpbm_messages');
 ?>
 <div class="wrap">
@@ -19,5 +35,9 @@ settings_errors('tpbm_messages');
             submit_button();
         ?>
     </form>
-    <!-- TODO add form to sync members list -->
+    <form method="POST">
+        <!-- TODO needs nonce -->
+        <input type="hidden" name="sync" value="sync">
+        <?php submit_button(__('Sync members')) ?>
+    </form>
 </div>

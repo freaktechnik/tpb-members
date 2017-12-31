@@ -42,12 +42,19 @@ class TPBMembersPlugin {
         'phonem' => 'Telefon (Mobil)',
     ];
 
+    const SYNC_TASK = 'tpbm_sync';
+
     public function __construct() {
         if(is_admin()) {
             add_action('admin_init', [$this, 'onInit']);
-            add_action('admin_menu', [self::class, 'onMenu']);
+            add_action('admin_menu', [$this, 'onMenu']);
         }
         add_shortcode('tpbmembers', [$this, 'makeList']);
+
+        if(!wp_next_scheduled(self::SYNC_TASK)) {
+            wp_schedule_event(time(), 'daily', self::SYNC_TASK);
+        }
+        add_action(self::SYNC_TASK, [$this, 'onSync']);
     }
 
     public function onInit() {
@@ -97,17 +104,26 @@ class TPBMembersPlugin {
         echo '<input name="'.$optionName.'" value="'.esc_attr($this->getOption($args['name'], '')).'" type="text">';
     }
 
-    public static function onMenu() {
+    public function onMenu() {
         add_menu_page(
             __('TPB Member List Settings', TPBM_TEXT_DOMAIN),
             __('TPB Member List', TPBM_TEXT_DOMAIN),
             'manage_options',
             self::OPTION_SLUG,
-            [self::class, 'showOptions']
+            [$this, 'showOptions']
         );
     }
 
-    public static function showOptions() {
+    public function onSync() {
+        $this->syncMembers();
+    }
+
+    public function showOptions() {
+        if($_POST['sync'] === 'sync') {
+            $this->syncMembers();
+            $didSync = true;
+        }
+        $lastError = $this->getOption('last_exception', false);
         include __DIR__.'/options.php';
     }
 
@@ -120,11 +136,18 @@ class TPBMembersPlugin {
     }
 
     private function syncMembers() {
-        $tpbToken = $this->getOption('token');
+        $tpbToken = $this->getOption('token', '');
         $tpbBuch = $this->getOption('buch', NULL);
-        $client = new TPBClient($tpbToken, $tpbBuch);
-        $membersList = $client->getMembers();
-        $this->setOption('members', json_encode($membersList));
+        try {
+            $client = new TPBClient($tpbToken, $tpbBuch);
+            $membersList = $client->getMembers();
+            $this->setOption('members', json_encode($membersList));
+            $this->setOption('last_exception', '');
+        }
+        catch(Exception $e) {
+            $this->setOption('last_exception', $e->getMessage());
+        }
+
     }
 
     /**

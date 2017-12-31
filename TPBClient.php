@@ -25,33 +25,47 @@ class TPBClient {
 
     private function getCookies(): string {
         $cookies = 't='.$this->sessionToken;
-        if(!empty($this->tbpSession)) {
-            $cookies .= ';TPBSID='.$this->tbpSession;
+        if(!empty($this->tpbSession)) {
+            $cookies .= '; TPBSID='.$this->tpbSession;
         }
         return $cookies;
     }
 
-    private function get(string $url, bool $withCookies = false): string {
+    private function get(string $url, bool $withCookies = false, $d = false): string {
         $c = curl_init('https://www.teamplanbuch.ch/'.$url);
+        curl_setopt($c, CURLOPT_COOKIEFILE, "");
+        //curl_setopt($c, CURLOPT_COOKIESESSION, true);
         curl_setopt($c, CURLOPT_COOKIE, $this->getCookies());
         curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($c, CURLOPT_ENCODING, '');
+        if($d) {
+            curl_setopt($c, CURLOPT_HTTPHEADER, [
+                'Accept: application/json, text/javascript, */*; q=0.01'
+            ]);
+        }
         if($withCookies) {
             curl_setopt($c, CURLOPT_HEADER, 1);
         }
-        return curl_exec($c);
+        $result = curl_exec($c);
+        curl_close($c);
+        return $result;
     }
 
     private function login() {
         $tpbSessionStart = $this->get('startseite', true);
-        preg_match('/TPBSID=([^;]+)/i', $tbpSessionStart, $matches);
+        preg_match('/TPBSID=([^;]+)/i', $tpbSessionStart, $matches);
         if(empty($matches) || empty($matches[1])) {
             throw new Exception('No Session started');
         }
-        $this->tpbSession = array_shift($matches[1]);
-        $this->get('dologin.php');
+        $this->tpbSession = $matches[1];
+        $this->get('spb/buch/login-register/dologin.php');
+        $this->get('spb/buch/login-register/doShowBooklist.php');
 
         if(!empty($this->buchId)) {
             $this->get('index.php?buch='.$this->buchId);
+        }
+        else {
+            $this->get('index.php');
         }
     }
 
@@ -71,7 +85,7 @@ class TPBClient {
      * See also the CONTACT_* constants on this class.
      */
     public function getMembers(): array {
-        $result = $this->get('spb/buch/listen/userliste.php?json');
+        $result = $this->get('spb/buch/listen/userliste.php?json', false, true);
         return json_decode($result, true)['aaData'];
     }
 }
