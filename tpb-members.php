@@ -2,7 +2,7 @@
 /*
 Plugin Name: Teamplanbuch Members
 Description: Show a members list based on Teamplanbuch
-Version: 1.0.0
+Version: 1.1.0
 Author: Martin Giger
 Author URI: https://humanoids.be
 License: MIT
@@ -68,6 +68,11 @@ class TPBMembersPlugin {
             'default' => null,
             'description' => __('TPB Book ID', TPBM_TEXT_DOMAIN)
         ]);
+        register_setting(self::OPTION_GROUP, self::OPTION_PREFIX.'additional', [
+            'type' => 'string',
+            'default' => '',
+            'description' => __('Zusätzliche Mitglieder (kommagetrennt)', TPBM_TEXT_DOMAIN)
+        ]);
 
         add_settings_section(
             self::OPTION_GROUP.'_tpb',
@@ -95,6 +100,17 @@ class TPBMembersPlugin {
             self::OPTION_GROUP.'_tpb',
             [
                 'name' => 'buch'
+            ]
+        );
+
+        add_settings_field(
+            self::OPTION_PREFIX.'additional',
+            __('Zusätzliche Mitglieder (kommagetrennt)', TPBM_TEXT_DOMAIN),
+            [$this, 'makeInput'],
+            self::OPTION_SLUG,
+            self::OPTION_GROUP.'_tpb',
+            [
+                'name' => 'additional'
             ]
         );
     }
@@ -160,8 +176,17 @@ class TPBMembersPlugin {
         ], $attributes);
 
         $members = json_decode($this->getOption('members', '[]'), true);
-        if(empty($members)) {
+        $addMembers = explode(',', $this->getOption('additional', ''));
+        $hasAddMembers = !empty($addMembers);
+        if($hasAddMembers && !$addMembers[0]) {
+            array_shift($addMembers);
+            $hasAddMembers = count($addMembers) > 0;
+        }
+        if(empty($members) && !$hasAddMembers) {
             return '<p>Keine Mitglieder!</p>';
+        }
+        else if($hasAddMembers) {
+            sort($addMembers);
         }
 
         $columns = array_map(function($i) {
@@ -185,10 +210,17 @@ class TPBMembersPlugin {
         else {
             $html = '<ul>';
             foreach($members as $m) {
-                $html .= '<li>';
+                $val = '';
                 foreach($columns as $c) {
-                    $html .= $m[self::ATTR_TO_INDEX[$c]].' ';
+                    $val .= $m[self::ATTR_TO_INDEX[$c]].' ';
                 }
+                if($hasAddMembers && strcmp($val, $addMembers[0]) > 0) {
+                    $html .= '<li>';
+                    $html .= array_shift($addMembers);
+                    $html .= '</li>';
+                }
+                $html .= '<li>';
+                $html .= $val;
                 $html .= '</li>';
             }
         }
