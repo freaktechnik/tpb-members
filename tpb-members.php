@@ -73,6 +73,11 @@ class TPBMembersPlugin {
             'default' => '',
             'description' => __('Zusätzliche Mitglieder (kommagetrennt)', TPBM_TEXT_DOMAIN)
         ]);
+        register_setting(self::OPTION_GROUP, self::OPTION_PREFIX.'admin', [
+            'type' => 'boolean',
+            'default' => false,
+            'description' => __('Benutzer ist Buchadmin', TPBM_TEXT_DOMAIN)
+        ]);
 
         add_settings_section(
             self::OPTION_GROUP.'_tpb',
@@ -113,11 +118,27 @@ class TPBMembersPlugin {
                 'name' => 'additional'
             ]
         );
+
+        add_settings_field(
+              self::OPTION_PREFIX.'admin',
+              __('Benutzer ist Buchadmin', TPBM_TEXT_DOMAIN),
+              [$this, 'makeCheckbox'],
+              self::OPTION_SLUG,
+              self::OPTION_GROUP.'_tpb',
+              [
+                  'name' => 'admin'
+              ]
+          );
     }
 
     public function makeInput($args) {
         $optionName = self::OPTION_PREFIX.$args['name'];
         echo '<input name="'.$optionName.'" value="'.esc_attr($this->getOption($args['name'], '')).'" type="text">';
+    }
+
+    public function makeCheckbox($args) {
+        $optionName = self::OPTION_PREFIX.$args['name'];
+        echo '<input name="'.$optionName.'" value="'.$optionName.'" type="checkbox"'.($this->getOption($args['name'], false) ? ' checked' : '').'>';
     }
 
     public function onMenu() {
@@ -189,6 +210,8 @@ class TPBMembersPlugin {
             sort($addMembers);
         }
 
+        $indexOffset = $this->getOption('admin', false) ? 1 : 0;
+
         $columns = array_map(function($i) {
             return trim($i);
         }, explode(',', $settings['columns']));
@@ -201,7 +224,7 @@ class TPBMembersPlugin {
             foreach($members as $m) {
                 $html .= '<tr>';
                 foreach($columns as $c) {
-                    $html .= '<td>'.$m[self::ATTR_TO_INDEX[$c]].'</td>';
+                    $html .= '<td>'.$m[self::ATTR_TO_INDEX[$c] + $indexOffset].'</td>';
                 }
                 $html .= '</tr>';
             }
@@ -212,7 +235,7 @@ class TPBMembersPlugin {
             foreach($members as $m) {
                 $val = '';
                 foreach($columns as $c) {
-                    $val .= $m[self::ATTR_TO_INDEX[$c]].' ';
+                    $val .= $m[self::ATTR_TO_INDEX[$c] + $indexOffset].' ';
                 }
                 if($hasAddMembers && strcmp($val, $addMembers[0]) > 0) {
                     $html .= '<li>';

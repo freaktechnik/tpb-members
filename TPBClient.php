@@ -13,6 +13,8 @@ class TPBClient {
     const CONTACT_PHONE_W = 9;
     const CONTACT_PHONE_M = 10;
 
+    const ADMIN_OFFSET = 1;
+
     private $sessionToken;
     private $tpbSession;
     private $buchId;
